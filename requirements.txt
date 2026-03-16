@@ -1,0 +1,7 @@
+Flask
+pandas
+nltk
+numpy
+pyphen
+morfeusz2
+scipy

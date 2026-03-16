@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrificale</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+    </header>
+    <div class="container">
+        <div class="pane left">
+            <textarea id="input-text" placeholder="Wpisz tekst..."></textarea>
+            <button id="analyze-btn">Analizuj</button>
+        </div>
+        <div class="pane right">
+            <div id="loader" class="hidden"></div> <div id="result"></div>
+        </div>
+    </div>
+    <script>
+    // Function to adjust font size of the table
+    function adjustFontSize() {
+        const pane  = document.querySelector('.right'); // The container for the table
+        const table = pane.querySelector('table');
+        if (!table) return;
+
+        // Reset font size to initial before recalculating (e.g., from CSS or a default)
+        table.style.fontSize = ''; // Or set to a specific default like '16px'
+        
+        let fontSize = parseInt(window.getComputedStyle(table).fontSize);
+        
+        // Shrink until it no longer overflows (but don't go below a readable size, e.g., 8px)
+        while (table.scrollWidth > pane.clientWidth && fontSize > 8) {
+            fontSize--;
+            table.style.fontSize = fontSize + 'px';
+        }
+    }
+
+    $(document).ready(function() {
+        $('#analyze-btn').click(function() {
+            const text = $('#input-text').val();
+            if (text.trim() === "") { // Basic validation: prevent empty analysis
+                $('#result').html('<p style="color: orange;">Proszę wpisać tekst do analizy.</p>');
+                return;
+            }
+            $('#result').empty(); // Clear previous results
+            $('#loader').removeClass('hidden'); // Show loader
+
+            $.ajax({
+                url: '/analyze',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ text: text }), // Ensure 'text' key matches request.json.get('text', '')
+                success: function(response) {
+                    $('#loader').addClass('hidden'); // Hide loader
+                    $('#result').html(response.html); // Use response.html as returned by jsonify
+                    adjustFontSize(); // Adjust font size after table is inserted
+                },
+                error: function(jqXHR, textStatus, errorThrown) { // Enhanced error handling
+                    $('#loader').addClass('hidden'); // Hide loader
+                    let errorMsg = 'Wystąpił błąd serwera.';
+                    if (jqXHR.responseJSON && jqXHR.responseJSON.html) {
+                        errorMsg = jqXHR.responseJSON.html; // Display server-provided HTML error
+                    } else if (jqXHR.responseText) {
+                        // Try to show responseText if it's not JSON (e.g. non-JSON error from server)
+                        // Be cautious with displaying raw responseText directly if it might contain unsafe HTML
+                        // For simplicity here, we assume it's a plain text or safe HTML error message
+                        // A better approach might be to parse it or show a generic message
+                        errorMsg = `<p>Błąd: ${jqXHR.status} ${errorThrown}</p><pre>${jqXHR.responseText.substring(0, 500)}</pre>`;
+                    }
+                    $('#result').html(`<div style="color: red;">${errorMsg}</div>`);
+                }
+            });
+        });
+
+        // Also re-adjust if the window resizes
+        let resizeTimeout;
+        $(window).on('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(adjustFontSize, 250); // Debounce resize event
+        });
+    });
+    </script>
+    <footer class="footer">
+        <div class="footer-text">Autor: Tytus Dunin, Wydział Polonistyki Uniwersytetu Warszawskiego 2025 | <strong>wersja 1.0.0</strong></div>
+    </footer>
+</body>
+</html>
