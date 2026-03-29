@@ -30,6 +30,7 @@ header img {
     border-right: 1px solid #ddd;
     display: flex;
     flex-direction: column;
+    flex: 0.6
 }
 
 .left textarea {

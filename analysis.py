@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
+import random
 import pyphen
 from kokosznicka import Kokosznicka
+from araxne import Araxne
 import string
 import re
 import json
@@ -101,7 +103,9 @@ def create_syllable_dataframe(text):
 
         # Przetwarzanie słów w linii
         for word in words:
-            syllables = Kokosznicka.hyphenate(word).split('-')  # Podziel słowo na sylaby
+            dirty = Kokosznicka.hyphenate(word)
+            clean = czyszczenie(dirty, zmiany)
+            syllables = clean.split('-')  # Podziel słowo na sylaby
             syllable_count = len(syllables)
 
             # Sprawdzenie, czy słowo kończy się jedną z końcówek z pliku przy użyciu funkcji sprawdz_koniec
@@ -155,9 +159,10 @@ def create_syllable_dataframe(text):
 
     # Dodanie pustych kolumn
     df['synafia'] = 0
-    #df['wykluczenie'] = pd.Series([False] * len(df), dtype='bool')
+    df['wykluczenie'] = 0
     df['zestrój'] = 0
     df['człon'] = 0
+    df['kolor'] = 0
 
     # Tworzenie outputu stressrank jako ciąg znaków
     stressrank_output = '\n'.join(stressrank_lines)
@@ -178,7 +183,9 @@ deinterpunktyzator = str.maketrans('', '', string.punctuation)
 
 zmiany = {
     ' w ': ' w~', 'W ': 'W~', '…': '', '«': '', '»': '',
-    ' z ': ' z~', 'Z ': 'Z~', ' k ': ' k~',
+    ' z ': ' z~', 'Z ': 'Z~', ' k ': ' k~', '—': '', 'ň': 'n',
+    'CZ': 'Cz', 'SZ': 'Sz', 'DZ': 'Dz', 'RZ': 'Rz', 'CH': 'Ch',
+    'DŻ': 'Dż', 'DŹ': 'Dź', 'DZI': 'Dzi',
 }
 
 prepyphen_path = 'ustab-zestr.txt'
@@ -197,8 +204,8 @@ text = czyszczenie(text, zmiany)
 df, stressrank_output = create_syllable_dataframe(text)
 
 # ZOSTAWIAM NA PÓŹNIEJ - trzeba wyczyścić "wykluczenie"
-for line_num, group in df.groupby("Line number"):
-    df.loc[df["Line number"] == line_num, "wykluczenie"] = False
+#for line_num, group in df.groupby("Line number"):
+#    df.loc[df["Line number"] == line_num, "wykluczenie"] = False
 
 # ------------------------------------------------------------------
 # ANTY-EPITROCHAZM
@@ -206,52 +213,50 @@ for line_num, group in df.groupby("Line number"):
 atona = {'się', 'bym', 'byś', 'by', 'i', 'a', 'o'}
 
 for line in df['Line number'].unique():
-    # Extract the syllables for the current line and reset the index
-    # to keep track of the original DataFrame indices.
+    # Wydzielanie syalb z obecnego wersu i resetowanie indeksu
     line_df = df[df['Line number'] == line].reset_index()
 
-    # Iterate over the syllables in the current line.
+    # Przechodzenie przez sylaby w wersie.
     for i, row in line_df.iterrows():
-        # Process only one-syllable words not in the atona list.
+        # Przetwarzanie tylko wtedy, kiedy nie są w atonach.
         if row['Syllablecount'] == 1 and row['Word'].lower() not in atona:
-            # Retrieve current stressrank; ensure it's an integer
+            # Ładowanie obecnej cioężkości
             new_stressrank = int(row['Stressrank'])
 
-            # Initialize previous and next stress values (if available)
+            # Deklarowanie poprzednich i następnych wartości
             prev_stress = None
             next_stress = None
 
-            # If not the first syllable in the line, get previous syllable's stressrank.
+            # Jeśli to nie jest pierwsza sylaba w wersie, załaduj ciężkość poprzedniej
             if i > 0:
                 prev_stress = int(line_df.loc[i - 1, 'Stressrank'])
-            # If not the last syllable in the line, get next syllable's stressrank.
+            # Jeśli to nie jest ostatnia sylaba w wersie, załaduj ciężkość następnej
             if i < len(line_df) - 1:
                 next_stress = int(line_df.loc[i + 1, 'Stressrank'])
 
-            # Rule 1 & 2: If the one-syllable word is the first in the line.
+            # Zasada dla pierwszych sylab w wersie
             if i == 0 and next_stress is not None:
                 if next_stress == 3:
                     new_stressrank -= 1
                 elif next_stress == 0:
                     new_stressrank += 1
 
-            # Rules that require both neighbors to be present.
+            # Zasady dla sylab z sąsiadującymi sylabami z obu stron.
             if prev_stress is not None and next_stress is not None:
-                # Rule 3: Subtract 1 if both neighbors have stressrank 2 or higher.
+                # Obniż o 1, jeśli sąsiadujące mają ciężkość 2 lub wyższą.
                 if prev_stress >= 2 and next_stress >= 2:
                     new_stressrank -= 1
-                # Rule 4: Subtract 1 if previous is 0 and next is 2 or higher.
+                # Obniż o 1, jeśli poprzednia ma ciężkość 0, a następna 2 lub więcej.
                 if prev_stress == 0 and next_stress >= 2:
                     new_stressrank -= 1
-                # Rule 5: Add 1 if previous is 2 or higher and next is 0.
+                # Podbij o 1, jeśli poprzednia ma ciężkość 2 lub więcej, a następna 0.
                 if prev_stress >= 2 and next_stress == 0:
                     new_stressrank -= 1
-                # Rule 6: Add 1 if both neighbors have stressrank 0.
+                # Podbij o 1, jeśli obie sylaby sąsiadujące mają ciężkość 0.
                 if prev_stress == 0 and next_stress == 0:
                     new_stressrank += 1
 
-            # Update the original DataFrame with the new stressrank.
-            # We use the original index saved in the temporary DataFrame.
+            # Aktualizacja oryginalnego df'a.
             original_index = row['index']
             df.at[original_index, 'Stressrank'] = new_stressrank
 
@@ -318,14 +323,13 @@ def dwójka_popraw_stressrank(df):
                 per_idx = starts[-1]
                 word = group.at[per_idx, 'Word']
                 propar = any(word.endswith(k) for k in proparoksytona)
-# not propar and not oksytona_prefiksowane and word.lower() in oksytona and
+# not propar and not oksytona_prefiksowane and word.lower() in oksytona and [TEN WERS PSUJE WSZYSTKO]
                 if df.at[first_idx, 'Stressrank'] < 2:
                     df.at[first_idx, 'Stressrank'] = 2
                 else:
                     df.at[second_idx, 'Stressrank'] = 0
                     
 
-            # Now iterate over the run to apply the second rule
             for k in range(1, len(run) - 1):
                 prev_idx = run[k - 1]
                 curr_idx = run[k]
@@ -348,16 +352,16 @@ df = dwójka_popraw_stressrank(df)
 oksytona_path = 'oksytona.txt'
 oksytona = set(line.strip() for line in open(oksytona_path, 'r', encoding='utf-8'))
 
-# 1. Utworzenie identyfikatora porządku słowa w linii
+# Utworzenie identyfikatora porządku słowa w linii
 # Flaga nowego słowa
 df['is_new_word'] = (df['Line number'] != df['Line number'].shift()) | (df['Word'] != df['Word'].shift())
 # Numer słowa w obrębie tekstu (globalnie), przyda się do grupowania
 df['WordIdx'] = df['is_new_word'].cumsum()
 
-# 2. Mapowanie poprzedzającego słowa z tej samej linii
-# Tworzymy słownik {WordIdx: preceding_word}
+# Mapowanie poprzedzającego słowa z tej samej linii
+# Tworzenie słownika
 prev_word = {}
-# Grupujemy po linii, aby ustalić peryferia per słowo
+# Grupowanie wg linii, aby ustalić peryferia słowo
 for ln, group in df.groupby('Line number'):
     # Lista unikalnych słów w kolejności
     word_order = group.drop_duplicates('WordIdx')[['WordIdx', 'Word']].values.tolist()
@@ -370,19 +374,18 @@ for ln, group in df.groupby('Line number'):
 # Dodajemy kolumnę peryferia
 df['peryferia'] = df['WordIdx'].map(prev_word)
 
-# 3. Wybieramy słowa o 4+ sylabach, których wszystkie zestrój == 0
+# Wybieramy słowa o 4+ sylabach, dla których zestrój == 0
 # Lista WordIdx spełniających warunek
 long_zero = []
 for widx, group in df.groupby('WordIdx'):
     if group['Syllablecount'].iloc[0] >= 4 and (group['zestrój'] == 0).all():
         long_zero.append(widx)
 
-# 4. Stosujemy reguły w kolejności
 for widx in long_zero:
     group = df[df['WordIdx'] == widx]
     # Indeksy w oryginalnym df
     idxs = group.index.tolist()
-    # 4a. Pierwsza sylaba od początku: Syllable Position == Syllablecount
+    # Pierwsza sylaba od początku: Syllable Position == Syllablecount
     first_idx = group[group['Syllable Position'] == group['Syllablecount'].iloc[0]].index
     for i in first_idx:
         if df.at[i, 'peryferia'] not in oksytona and df.at[i, 'peryferia'] not in proparoksytona and anty_zestrajacz_nie(df.at[i, 'Word']) == False:
@@ -411,13 +414,12 @@ df.drop(columns=['is_new_word', 'WordIdx', 'peryferia'], inplace=True)
 # --------------------------------------------------------------------
 from collections import Counter
 
-# 1. Filtrujemy sylaby z wykluczenie == False, zachowując oryginalny numer linii
-df_valid = df[df['wykluczenie'] == False].copy()
+df_valid = df.copy()
 
-# 2. Numerujemy sylaby w każdej oryginalnej linii od 1
+# Numerowanie w każdej oryginalnej linii od 1
 df_valid['syll_line_idx'] = df_valid.groupby('Line number').cumcount() + 1
 
-# 3. Dla każdej oryginalnej linii zbieramy pary sylab, między którymi jest podział między słowami
+# Zbieranie par sylab, między którymi jest podział między słowami
 line_splits = {}
 all_splits = []
 
@@ -428,7 +430,7 @@ for line_num, group in df_valid.groupby('Line number'):
     for i in range(len(group) - 1):
         curr = group.iloc[i]
         nxt  = group.iloc[i + 1]
-        # jeśli sylaby należą do różnych słów → podział
+        # jeśli sylaby należą do różnych słów, robimy podział
         if curr['Word'] != nxt['Word']:
             first_syll_idx = curr['syll_line_idx']
             second_syll_idx_from_end = line_length - first_syll_idx
@@ -442,54 +444,66 @@ for line_num, group in df_valid.groupby('Line number'):
 # 5. Obliczamy najczęstsze podziały w całym tekście
 if all_splits:
     counter = Counter(all_splits)
-    most_common = counter.most_common(1)  # najpopularniejszy
+    most_common = counter.most_common(4)  # najpopularniejsze 4
     max_count = most_common[0][1]
     top_splits = [split for split, count in most_common if count == max_count]
     split = ", ".join(top_splits)
 else:
     split = "brak"
 
+# Teraz wybieramy najbardziej "wypośrodkowany" z najczęstszych
+best = []
+
+for it in top_splits:
+  tabl = it.split("+")
+  diff = abs(int(tabl[0]) - int(tabl[-1]))
+  resu = (it, diff)
+  best.append(resu)
+
+win = ('0+0', line_length)
+
+for i in best:
+  if i[1] <= win[1]:
+    win = i
+
+winner = win[0]
 
 # ---------------------------------------------------------------------
 # SYNAFIA
 # ---------------------------------------------------------------------
 
 def create_synafia(df):
-    # Group the DataFrame by line number to process each line separately
+    # Grupujedy dataframe'a wg numeru wersu
     grouped = df.groupby("Line number")
 
-    # Initialize an empty list to store rows for synafia_test
+    # Pusta lista na wiersze późniejszej tabeli synafia_test
     synafia_rows = []
 
-    # Iterate through each group (each line)
+    # Iterujemy przez każdą grupę (każdy wers)
     for line_number, group in grouped:
-        # Tylko przetwarzaj wers, jeśli kolumna "wykluczenie" ma wartość False
-        if group["wykluczenie"].iloc[0] == False:
-            # Get the Stressrank values for each syllable in the line
-            stressrank_values = group["Stressrank"].tolist()
-            # Append the Stressrank values as a single row
-            synafia_rows.append(stressrank_values)
+            # Bierzemy ciężkośc dla każdej sylaby
+        stressrank_values = group["Stressrank"].tolist()
+            # Dodajemy ciężkości do jednego wiersza
+        synafia_rows.append(stressrank_values)
 
-    # Find the maximum number of syllables in any line to pad shorter lines
+    # Wynajdujemy maksymalną długość wersu, aby wypełnić krótsze
     max_syllables = max(len(row) for row in synafia_rows)
 
-    # Pad all rows with zeros to make them of equal length
+    # Wypełniamy krótsze zerami
     padded_rows = [row + [0] * (max_syllables - len(row)) for row in synafia_rows]
 
-    # Create a DataFrame from the padded rows
+    # I tworzymy z tego df'a
     synafia_test = pd.DataFrame(padded_rows)
 
-    # Adjust column labels to start from 1
+    # Zmieniamy indeksowanie kolumn od 1
     synafia_test.columns = range(1, synafia_test.shape[1] + 1)
 
-    # Add an additional row to sum the stressrank values for each syllable position
+    # Dodaktowy wiersz na końcu do sumowania powyższych ciężkości
     synafia_test.loc["Sum"] = synafia_test.sum()
 
     return synafia_test
 
-# Use the function to create synafia_test
 synafia_test = create_synafia(df)
-
 
 # SYNAFIA: METRUM
 from numpy import mean
@@ -603,10 +617,6 @@ def niemetryczny(synafia_test: pd.DataFrame):
     finalny_wynik = sum(diff)
     return tabela, finalny_wynik
 
-# przykład użycia:
-#tabela_trochej, wynik = jamb(synafia_test)
-#print(tabela_trochej)
-#print("Finalny wynik:", wynik)
 
 funcs = [trochej, jamb, daktyl, amfibrach, niemetryczny]
 results = [(f.__name__, f(synafia_test)[1]) for f in funcs]
@@ -619,13 +629,13 @@ best = sorted_results[0][0]
 other = [f"{name}({res})" for name, res in sorted_results]
 
 # SYNAFIA: PARAMETRY
-# Oblicz liczbę sylab w każdej linii bez wykluczenia
-line_syll = df[df['wykluczenie'] == False].groupby('Line number').size()
+# Oblicz liczbę sylab w każdej linii
+line_syll = df.groupby('Line number').size()
 
 # Najczęstsza liczba sylab
 mode_syll = line_syll.mode().iloc[0]
 
-# Warunek: odchylenia maks. 1 od mody
+# Ustalamy rodzaj opierając się na metrach i odchyleniu od najczęstszej liczby sylab
 if best != "niemetryczny":
     rodzaj = 'sylabotoniczny'
 elif (line_syll.subtract(mode_syll).abs() == 0).all():
@@ -643,10 +653,10 @@ zgłoskowiec = mode_syll if rodzaj in ['izosylabiczny', 'sylabiczny względny', 
 # ------------------------------------------------------------------------
 # Funkcja zwracająca wzorzec na podstawie nazwy funkcji
 binary_feet = {
-    'trochej':    [1, 0],      # S-n
-    'jamb':       [0, 1],      # n-S
-    'amfibrach':  [0, 1, 0],   # n-S-n
-    'daktyl':     [1, 0, 0],   # S-n-n
+    'trochej':    [1, 0],
+    'jamb':       [0, 1],
+    'amfibrach':  [0, 1, 0],
+    'daktyl':     [1, 0, 0],
     # w niemetrycznym po prostu same “0” (nieregularne)
     'niemetryczny': None
 }
@@ -659,13 +669,76 @@ else:
     # wyzeruj kolumnę
     df['synafia'] = 0
 
-    # 2. Dla każdej linii powtórz stopę aż do liczby sylab
+    # Dla każdej linii powtórz stopę aż do liczby sylab
     for line_no, group in df.groupby('Line number'):
         n_syl = len(group)
         # rozwiń wzorzec dokładnie do n_syl
         pattern_line = (foot * ((n_syl // len(foot)) + 1))[:n_syl]
         # przypisz po kolei 1/0 do tych wierszy
         df.loc[group.index, 'synafia'] = pattern_line
+
+# ------------------------------------------------------------------------
+# ARAXNE
+# ------------------------------------------------------------------------
+import random
+
+
+def generate_hex_code():
+    """Generates a random 6-character hex color code."""
+    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+def color_similar_last_words(df):
+    """
+    Assigns independent random colors to last words, then iterates forward.
+    If a future word matches, it inherits the current word's color.
+    """
+    # Wybieramy ostatnie słowo i przyporządkujemy losowy kolor
+    lines_info = []
+    
+    for line_num in df['Line number'].unique():
+        line_indices = df[df['Line number'] == line_num].index
+        last_word = df.loc[line_indices[-1], 'Word']
+        
+        last_word_idxs = []
+        for idx in reversed(line_indices):
+            if df.loc[idx, 'Word'] == last_word:
+                last_word_idxs.insert(0, idx)
+            else:
+                break
+                
+        lines_info.append({
+            'line_num': line_num,
+            'word': last_word,
+            'indices': last_word_idxs,
+            'color': "#FFFFFF"
+        })
+
+    # Iterujemy do przodu, szukamy rymów
+    for i in range(len(lines_info)):
+        word1_info = lines_info[i]
+        
+        # Patrzymy max 4 wersy do przodu
+        for j in range(i + 1, min(i + 5, len(lines_info))):
+            word2_info = lines_info[j]
+            
+            score = Araxne.compare(word1_info['word'], word2_info['word'])
+            
+            # 75% zgodności wg Araxne – uznajemy za rym
+            if score > 75.00:
+                if word1_info['color'] == '#FFFFFF':
+                    word1_info['color'] = generate_hex_code()
+                # Nadpisujemy kolor, dzięki czemu możemy zrobić łańcuch rymów
+                word2_info['color'] = word1_info['color']
+                
+                break
+
+    # Wpisujemy kolory do df'a
+    for info in lines_info:
+        df.loc[info['indices'], 'kolor'] = info['color']
+        
+    return df
+
+df = color_similar_last_words(df)
 
 # ------------------------------------------------------------------------
 # ŁADNA TABLEKA
@@ -675,15 +748,16 @@ wyniki_rows = []
 
 # grupujemy po numerze linii
 for line_number, group in df.groupby('Line number'):
-    # wyrzuć grupę do list
+    # wyrzuamy grupę do list
     sylaby       = group['Syllable'].tolist()
     stressy      = group['Stressrank'].astype(int).tolist()
     synafie      = group['synafia'].astype(int).tolist()
-    wykluczenia  = group['wykluczenie'].astype(bool).tolist() # Ensure boolean
+    wykluczenia  = group['wykluczenie'].tolist() 
     max_cols     = len(sylaby)
     excluded     = any(wykluczenia)
+    line_color = group['kolor'].iloc[-1]
 
-    # obliczamy symbole według reguł
+    # obliczamy symbole według reguł (na tym etapie zamienione, bo jest problem z kodowaniem)
     symbole = []
     for s, r in zip(synafie, stressy):
         suma = s + r
@@ -700,7 +774,7 @@ for line_number, group in df.groupby('Line number'):
         elif s == 1 and r == 0:
             symbole.append("$")
         else:
-            symbole.append("–") # Using hyphen-minus, ensure this is intended over an em-dash or other dash
+            symbole.append("–")
 
     # funkcja do zbudowania słownika jednej “wierszowej” tabeli
     def make_row(row_type, data_list):
@@ -710,6 +784,7 @@ for line_number, group in df.groupby('Line number'):
         for idx in range(len(data_list)+1, max_cols+1): # Pad with empty strings
             row[f'{idx}'] = ''
         row['excluded'] = excluded
+        row['kolor'] = line_color
         return row
 
     # dodajemy cztery wiersze:
@@ -722,32 +797,18 @@ for line_number, group in df.groupby('Line number'):
 wyniki_df = pd.DataFrame(wyniki_rows)
 
 
-# WZÓR METRYCZNY
-# Ensure synafia_test is a DataFrame and has "Sum" in its index if loc["Sum"] is used
-# Example synafia_test (replace with your actual data)
-# synafia_test_data = {'col1': [1,2,3], 'col2': [4,5,6]}
-# synafia_test_index = ["Val1", "Val2", "Sum"]
-# synafia_test = pd.DataFrame(synafia_test_data, index=synafia_test_index)
-
-
 def wypisz_metryczny_wzor(best_metrum: str, synafia_test_df: pd.DataFrame) -> str:
-    # This is a placeholder for n_cols if synafia_test_df is not structured as expected
-    # or if 'Sum' is not in its index. Adjust as necessary.
     n_cols = 0
     if "Sum" in synafia_test_df.index:
         n_cols = len(synafia_test_df.loc["Sum"])
-    elif not synafia_test_df.empty: # Fallback if "Sum" row isn't present but df has columns
+    elif not synafia_test_df.empty:
         n_cols = synafia_test_df.shape[1]
     
-    if n_cols == 0: # If n_cols couldn't be determined, provide a default or handle error
+    if n_cols == 0: # Jeśli nie uda się obliczyć n_cols
         return "Nie można wygenerować wzorca (brak kolumn)"
 
-    # Ensure szczyt, niz, srednia are defined in a scope accessible here
-    # These are example values, they should be defined based on your script's logic
-    global szczyt, niz, srednia # If they are global variables
-    # szczyt = 1
-    # niz = 0
-    # srednia = 0.5
+    # Upewniamy się, że szczyt, niz i srednia będą dostępne globalnie
+    global szczyt, niz, srednia
 
     pattern_map = {
         "trochej":      ([szczyt, niz] * ((n_cols // 2) + 1))[:n_cols],
@@ -766,18 +827,14 @@ def wypisz_metryczny_wzor(best_metrum: str, synafia_test_df: pd.DataFrame) -> st
     wynik_string = " ".join(symboliczny_wzor)
     return wynik_string
 
-# Przykład użycia:
-# Ensure 'best' and 'synafia_test' are defined before this call
-# best = "trochej" # example
 wzorzec_tekstowy = wypisz_metryczny_wzor(best, synafia_test)
-
 
 print(f"###RODZAJ:{rodzaj}")
 print(f"###ZGLOSKOWIEC:{zgłoskowiec}")
-print(f"###ŚREDNIÓWKA:{split}")
+print(f"###ŚREDNIÓWKA:{winner}")
 print(f"###METRUM:{best}")
-print(f"###WZORZEC_METRYCZNY:{wzorzec_tekstowy}") # MODIFIED: Print the pattern
+print(f"###WZORZEC_METRYCZNY:{wzorzec_tekstowy}")
 print(f"###INNEMETRA:{other}")
-print(f"###SZCZYT:{szczyt}") # This 'szczyt' is the numeric value used in pattern generation
+print(f"###SZCZYT:{szczyt}")
 
-print(wyniki_df.to_csv(index=False, lineterminator='\n')) # Ensure consistent line endings
+print(wyniki_df.to_csv(index=False, lineterminator='\n'))
