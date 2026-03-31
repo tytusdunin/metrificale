@@ -7,7 +7,7 @@
 ```
 Nam metrum meminit, curtat, amenificat.
 ```
-- Marek z Opatowca, _Metrificale_ (Księga III)
+- Marek z Opatowca, _Metrificale_
 
 > Created with ❤ by Tytus Dunin
 
