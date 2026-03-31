@@ -26,7 +26,7 @@ pip install flask pandas nltk numpy pyphen morfeusz2 kokosznicka araxne
 After the dependencies are installed, you can clone the git repo:
 
 ```
-git clone (ADDRESS)
+git clone https://github.com/tytusdunin/metrificale.git
 ```
 
 Finally, you can cd into the project folder and run the app.
