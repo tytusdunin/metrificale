@@ -8,21 +8,84 @@ header {
     background: #f7f7f7;
     padding: 0px;
     text-align: center;
+    position: relative;
 }
 
 header img {
     max-height: 80px;
 }
 
+.help-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%); 
+    
+    font-size: 30px;
+    font-weight: bold;
+    color: #0a3e6c;
+    text-decoration: none;
+}
+
+.help-icon:hover {
+    color: #0056b3;
+}
+
 .container {
     display: flex;
     height: calc(100vh - 130px);
+    justify-content: center;
+}
+
+.containerhelp {
+    display: flex;
+    min-height: calc(100vh - 130px); 
+    justify-content: center;
+}
+
+.maindiv {
+  border-style: dotted;
+  border-color: #0a3e6c;
+  padding: 70px;
+  padding-top: 10px;
+  border-radius: 10px;
+  width: 800px;
+  max-width: 90vw;
+  box-sizing: border-box;
+  background-color: #eeeeee;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.maindiv img {
+    display: block;
+    margin: 0 auto 20px auto;
+}
+
+.p1 {
+  font-family: "Times New Roman", Times, serif;
+  text-align: justify;
+}
+
+ol {
+  font-family: "Times New Roman", Times, serif;
+}
+
+ul {
+  font-family: "Times New Roman", Times, serif;
+}
+
+h3 {
+  font-family: "Times New Roman", Times, serif;
+  color: #0a3e6c;
+  font-size: 25px;
 }
 
 .pane {
     flex: 1;
     padding: 20px;
     box-sizing: border-box;
+    min-height: 0;
 }
 
 .left {
@@ -96,23 +159,19 @@ header img {
     background-color: #c80000; /* jasnoczerwony */
 }
 
-/* remove any border on the outer table */
 .table {
     border: none !important;
   }
   
-  /* remove cell borders on headers and body cells */
   .table th,
   .table td {
     border: none !important;
   }
 
-/* hide the top header row */
 .table thead th {
     display: none;
   }
   
-  /* hide the left‐hand index column */
   .table tbody th {
     display: none;
   }
@@ -153,4 +212,37 @@ header img {
 .footer-text {
     color: #0a3e6c;
     font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    body {
+        display: block;
+    }
+    .container {
+        flex-direction: column;
+    }
+
+    .left {
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        min-height: 300px;
+    }
+
+    .maindiv {
+        width: 100%;
+        padding: 30px 20px;
+        border-style: dotted;
+    }
+
+    .maindiv .p1[style*="transform"] {
+        transform: none !important;
+        margin-bottom: 5px !important;
+        position: static !important;
+    }
+
+    .maindiv img {
+        max-width: 100%;
+        height: auto;
+        max-height: 150px;
+    }
 }

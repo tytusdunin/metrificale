@@ -7,13 +7,25 @@ import os
 
 app = Flask(__name__)
 
+MAX_TEXT_LENGTH = 42486 # liczba znaków w pierwszęj księdze Pana Tadeusza (z marginesem)
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/help')
+def help_page():
+    return render_template('help.html')
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.json.get('text', '')
+
+    if len(data) > MAX_TEXT_LENGTH:
+        return jsonify({'error': 'Przekroczono limit znaków.'}), 413
+
+    if not data:
+        return jsonify({'error': 'Brak tekstu do analizy.'}), 400
 
     start_time = datetime.now()
 
@@ -30,8 +42,8 @@ def analyze():
     duration = (end_time - start_time).total_seconds()
 
     if result.returncode != 0:
-        print(f"Error during analysis script execution:\nSTDERR:\n{result.stderr}\nSTDOUT:\n{result.stdout}")
-        error_html = f"<p>Wystąpił błąd podczas analizy. Szczegóły:</p><pre>{result.stderr}</pre>"
+        print(f"Error during analysis script execution")
+        error_html = f"<p>Wystąpił błąd podczas analizy.</p>"
         return jsonify({'html': error_html}), 500
 
     stdout = result.stdout
@@ -50,7 +62,6 @@ def analyze():
     innemetra = ''
     szczyt = ''
 
-    # Use a set for lines already processed to avoid issues if markers are somehow duplicated
     processed_markers = set() 
     
     # Lista do csv-ki
@@ -109,13 +120,12 @@ def analyze():
 
         display_df = df.drop(columns=['Linijka', 'Type', 'excluded'], errors='ignore')
 
-        def _style_row(styled_row): # styled_row is a Series from the DataFrame being styled
+        def _style_row(styled_row):
           style_properties = []
 
           is_excluded_row = False
           current_row_type = ''
 
-          # Safely access flags using the row's original index (styled_row.name)
           if styled_row.name in excluded_flags.index:
               is_excluded_row = excluded_flags.loc[styled_row.name]
           
@@ -153,7 +163,7 @@ def analyze():
             .apply(_style_row, axis=1)
             .set_table_attributes('class="table table-striped"')
             .set_table_styles([
-                {'selector': 'th, td', 'props': [('text-align', 'center')]} # Center all cells
+                {'selector': 'th, td', 'props': [('text-align', 'center')]} # Wszystkie komórki na środek
             ])
             .format(na_rep='') # NoneType jako puste
         )
@@ -161,7 +171,7 @@ def analyze():
 
     html_parts = [
         f'<h2>Wynik analizy</h2>',
-        f'<p><strong>Rodzaj wiersza:</strong> {rodzaj}</p>',
+        f'<p><strong>System numeryczny wiersza:</strong> {rodzaj}</p>',
         f'<p><strong>Długość:</strong> {zglo}-zgłoskowiec</p>',
         f'<p><strong>Średniówka:</strong> {średniówka}</p>',
         f'<p><strong>Metrum:</strong> {metrum}</p>',

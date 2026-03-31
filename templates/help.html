@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrificale | Pomoc</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body style="justify-content: center;">
+    <br><br>
+    <div class="containerhelp">
+        <div class="maindiv" style="margin-bottom: 40px;">
+            <img href="{{ url_for('index') }}" src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="max-height: 200px;">
+            <p class="p1" style="text-align: center; margin: 0; color: #0a3e6c; transform: translateY(-200%);">Wersja 1.1.0</p>
+            <p class="p1" style="text-align: center; margin: 0; color: #0a3e6c; transform: translateY(-100%);">Autor: Tytus Dunin</p>
+            <p class="p1" style="text-align: center; margin: 0;"><i>Metrificale to otwartoźrółowy program na licencji GNU GPL-3.0 stworzony na Wydziale Polonistyki Uniwersytetu Warszawskiego.</i></p>
+            <h3>Czym jest Metrificale?</h3>
+            <p class="p1">
+                Metrificale jest automatycznym analizatorem wersologicznym dla polskojęzycznych wierszy. Program ten analizuje wprowadzony wiersz pod względem rodzaju wiersza, rozkładu akcentów, schematu metrycznego, pozycji średniówki i schematu rymów.
+            </p>
+            <p class="p1">
+                Metrificale przeprowadza anotację metryczną wiersza i wizualizuje ją – nie posiada jednak komponentu odpowiedzialnego za wykrywanie wiersza. Progam zakłada, że wprowadzony tekst jest wierszem.
+            </p>
+            <h3>Jakie ograniczenia ma Metrificale?</h3>
+            <p class="p1">
+                Metrificale w tej wersji działa najlepiej z wierszami <strong>sylabotonicznymi</strong> o jednolitym, stałym rozkładzie akcentów. Wynika to z przyjętej metody analizy opisanej poniżej. Program obsługuje również wiersze sylabiczne, natomiast analiza niektórych miejsc (przede wszystkim ciągów monosylab, które nie są atoniczne) może być mniej dokładna ze względu na brak ogólnego metrum, który pozwala „uprawdopodobnić” padanie akcentu na konkretnych sylabach. To samo dotyczy wierszy wolnych, przy czym w ich przypadku parametry wiesza podane na początku analizy mogą być niedokładne. Wiersze toniczne Metrificale traktuje jak sylabiczne – analiza wierszy tonicznych wymaga zupełnie innego podejścia, które jeszcze nie zostało zaimplementowane.
+            </p>
+            <p class="p1">
+                Obecna wersja Metrificale traktuje <strong>wiersze sylabotoniczne o metrach logaedycznych</strong> jak wiersze sylabotoniczne – algorytm pozwalający na dopasowanie wzorców złożonych z dowolnej kombinacji stóp metrycznych jeszcze nie został wprowadzony w tej wersji.
+            </p>
+            <p class="p1">
+                Metrificale wykorzystuje stworzony przez autora pakiet <i>kokosznicka</i> do <strong>podziału tekstu na sylaby</strong>. Popularne rozwiązania, takie jak <i>Pyphen</i> lub <i>PyHyphen</i> (wykorzystywane np. przez Jasnopis) w przypadku języka polskiego dosyć często zwracają podział z niepoprawną liczbą sylab, przede wszystkim w wyrazach zawierajacych samogłoski niesylabiczne, dlatego nie są dobrą opcją dla analizatora wersologicznego. Pakiet <i>kokosznicka</i> został przede wszystkim przygotowany tak, aby zwracał podział z poprawną liczbą sylab, może jednak tworzyć podziały nienormatywne w niektórych grupach spółgłoskowych. Następne wersje pakietu zostaną rozszerzone o rozwiazania inspirowane badaniami Brigitte Bigi i Katarzyny Klessy oraz Daniela Śledzińskiego.
+            </p>
+            <p class="p1">
+                <strong>Wykrywanie rymów</strong> obsługiwane jest za pomocą stworzonego przez autora pakietu <i>Araχne</i>. Pakiet ten jest obecnie w bardzo wczesnej, eksperymentalnej wersji – obecnie umożliwia podstawowe rozróżnianie między rymami i wyrazami, które się nie rymują. Niedługo zostanie wprowadzone wykrywanie rymów niedokładnych, asonansów i konsonansów.
+            </p>
+            <p class="p1">
+               Metrificale analizuje dany wiersz <strong>jako całość</strong>. Oznacza to, że jeśli między strofami o regularnym metrum lub wewnątrz takiej strofy nastąpi zmiana metrum na inny, program nie będzie w stanie rozpoznać wiersza jako sylabotonicznego. Algorytm przeprowadzający analizę każdej strofy osobno, który umożliwi także rozpoznawanie struktur wyższego rzędu, np. gatunków lirycznych, zostanie wprowadzony w najbliższej dużej aktualizacji. Wraz z nim zostanie wprowadzony specjalny system tagów, który umożliwi efektywne wyszukiwanie i porównywanie struktur wierszy.
+            </p>
+            <h3>Jak interpretować wynik analizy?</h3>
+            <img src="{{ url_for('static', filename='przyklad.png') }}" alt="Przykład analizy" style="max-height: 400px;">
+            <p class="p1">
+                Po kliknięciu przycisku „Analizuj” program zwraca wynik analizy w oknie obok. Na górze znajdują się <strong>ogólne parametry wiersza</strong> – wykryty system numeryczny, długość wersu, średniówka i metrum. Pod nimi pokazana jest ogólna reprezentacja metrum wiersza (jeśli wiersz jest sylabotoniczny).
+            </p>
+            <p class="p1">
+                Pod parametrami znajduje się szczegółowa analiza wiersza w formie tabeli. Do każdego wersu przypisane są cztery rodzaje informacji – w kolejności:
+                <ol>
+                    <li>Graficzna reprezentacja prawdopodobnego akcentu</li>
+                    <li>Tekst sylaby</li>
+                    <li>Ciężkość akcentowa sylaby</li>
+                    <li>Obecność akcentu wierszowego w tej pozycji wersu</li>
+                </ol>
+            </p>
+            <p class="p1">
+                <strong>Graficzna reprezentacja sylaby</strong> w szczegółowej analizie została rozszerzona względem tradycyjnej, uniwerysteckiej anotacji. Oprócz dwóch podstawowych znaków (– dla sylab nieakcentowanych i ⨩ dla mających akcent główny) w szczegółowej analizie mogą znaleźć się znaki: ⨫ dla akcentu zestrojowego (pobocznego), znajdującego się na początku zestroju, oraz ∸ dla tzw. „akcentu łączącego”, który znajduje się wewnątrz zestroju, pomiędzy akcentem zestrojowym i głównym, jeśli między nimi znajdują się co najmniej trzy sylaby. Znaki są odpowiednio dobierane w zależności od ciężkości akcentowej i obecności akcentu wierszowego.
+            </p>
+            <p class="p1">
+                <strong>Tekst sylaby</strong> prezentowany jest według podziału wykonanego przez pakiet <i>kokosznicka</i>. Jak zostało wspomniane wcześniej, <i>kokosznicka</i> może robić błędy w podziale grup spółgłoskowych.
+            </p>
+            <p class="p1">
+                <strong>Ciężkość akcentowa sylaby</strong> to kategoria wprowadzona na potrzeby modelu formalnej analizy wiersza realizowanej przez Metrificale. Została zdefiniowana jako cecha sylaby, która określa prawdopodobieństwo padania na nią akcentu na czterostopniowej skali (0–3) w oparciu o jej zawartość, a także położenie względem innych sylab i wyrazów oraz ich zawartość. Jest to kategoria przedakcentowa, nieprzynależąca do żadnej pojedynczej wypowiedzi, mająca swoje źródło w normie językowej.
+                <ul>
+                    <li>System ciężkosci akcentowych został opracowany na podstawie badań empirycznych Marii Steffen-Batogowej i teorii Marii Dłuskiej. Dokładna jego charakterystyka oraz sposób działania programu Metrificale będą przedmiotem powstającego obecnie artykułu naukowego.</li>
+                </ul>
+            </p>
+            <p class="p1">
+                <strong>Obecność akcentu wierszowego</strong> określana jest przez Metrificale poprzez sumowanie ciężkości akcentowych według pozycji sylaby w wersie. Otrzymana lista sum jest porównywana do wzorca utworzonego z powtarzanych do wypełnienia długości wiersza stóp metrycznych, w których pod sylabę akcentowaną jest podstawiana średnia wszystkich sum, a pod nieakcentowaną – najniższa z sum. Istnieje też specjalny wzorzec do wykrywania niemetryczności wiersza, w którym wszystkie pozycje wypełnia średnia wszystkich sum. Algorytm następnie oblicza wartość bezwzględną od różnicy sum i wzorca – wzorzec z najmniejszą różnicą zostaje uznany za poprawne metrum tego wiersza.
+                <ul>
+                    <li>Wzorce tworzone są tylko na podstawie następujących stóp metrycznych: trocheja, jambu, amfibrachu i daktyla, ponieważ praktycznie tylko z tych stóp można w języku polskim utworzyć wiersz o regularnym, powtarzalnym metrum.</li>
+                </ul>
+            </p>
+            <p class="p1">
+                <strong style="color: #daa5b1;">Rym</strong> ostatniego słowa reprezentowany jest przez kolor wiersza tabeli. Metrificale losuje dla każdego wersu kolor – jeśli w odległości czterech wersów ostatnie słowo któregoś z nich będzie się rymowało, program ustawi kolor odpowiedniego wiersza tabeli na tę samą barwę. Jeśli nie, wiersz ten pozostanie biały.
+            </p>
+            <h3 style="text-align: center;">Kontakt z autorem i przydatne linki</h3>
+            <p style="text-align: center;">Zachęcam do kontaktu przez e-mail:</p>
+            <p style="text-align: center;">tm.dunin (<a href="https://en.wikipedia.org/wiki/At_sign#Names_in_other_languages">małpa</a>) student.uw.edu.pl</p>
+            <br>
+            <p style="text-align: center;"><a style="text-align: center;" href="" >[KOD ŹRÓŁOWY]</a></p>
+        </div>
+    </div>
+</body>

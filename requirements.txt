@@ -1,7 +1,8 @@
-Flask
+flask
 pandas
 nltk
 numpy
 pyphen
 morfeusz2
-scipy
+kokosznicka
+araxne

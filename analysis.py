@@ -183,7 +183,7 @@ deinterpunktyzator = str.maketrans('', '', string.punctuation)
 
 zmiany = {
     ' w ': ' w~', 'W ': 'W~', '…': '', '«': '', '»': '',
-    ' z ': ' z~', 'Z ': 'Z~', ' k ': ' k~', '—': '', 'ň': 'n',
+    ' z ': ' z~', 'Z ': 'Z~', ' k ': ' k~', '—': '', '–': '', 'ň': 'n',
     'CZ': 'Cz', 'SZ': 'Sz', 'DZ': 'Dz', 'RZ': 'Rz', 'CH': 'Ch',
     'DŻ': 'Dż', 'DŹ': 'Dź', 'DZI': 'Dzi',
 }
@@ -643,7 +643,7 @@ elif (line_syll.subtract(mode_syll).abs() == 0).all():
 elif (line_syll.subtract(mode_syll).abs() <= 1).all():
     rodzaj = 'sylabiczny względny'
 else:
-    rodzaj = 'toniczny lub wolny'
+    rodzaj = 'zróżnicowany, toniczny lub wolny'
 
 # Ustal zgłoskowiec
 zgłoskowiec = mode_syll if rodzaj in ['izosylabiczny', 'sylabiczny względny', 'sylabotoniczny'] else None

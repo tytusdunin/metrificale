@@ -10,6 +10,7 @@
 <body>
     <header>
         <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+        <a href="{{ url_for('help_page') }}" class="help-icon">?</a>
     </header>
     <div class="container">
         <div class="pane left">
@@ -21,18 +22,16 @@
         </div>
     </div>
     <script>
-    // Function to adjust font size of the table
+
     function adjustFontSize() {
-        const pane  = document.querySelector('.right'); // The container for the table
+        const pane  = document.querySelector('.right');
         const table = pane.querySelector('table');
         if (!table) return;
 
-        // Reset font size to initial before recalculating (e.g., from CSS or a default)
-        table.style.fontSize = ''; // Or set to a specific default like '16px'
+        table.style.fontSize = '';
         
         let fontSize = parseInt(window.getComputedStyle(table).fontSize);
         
-        // Shrink until it no longer overflows (but don't go below a readable size, e.g., 8px)
         while (table.scrollWidth > pane.clientWidth && fontSize > 8) {
             fontSize--;
             table.style.fontSize = fontSize + 'px';
@@ -42,33 +41,29 @@
     $(document).ready(function() {
         $('#analyze-btn').click(function() {
             const text = $('#input-text').val();
-            if (text.trim() === "") { // Basic validation: prevent empty analysis
+            if (text.trim() === "") {
                 $('#result').html('<p style="color: orange;">Proszę wpisać tekst do analizy.</p>');
                 return;
             }
-            $('#result').empty(); // Clear previous results
-            $('#loader').removeClass('hidden'); // Show loader
+            $('#result').empty();
+            $('#loader').removeClass('hidden');
 
             $.ajax({
                 url: '/analyze',
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ text: text }), // Ensure 'text' key matches request.json.get('text', '')
+                data: JSON.stringify({ text: text }),
                 success: function(response) {
-                    $('#loader').addClass('hidden'); // Hide loader
-                    $('#result').html(response.html); // Use response.html as returned by jsonify
-                    adjustFontSize(); // Adjust font size after table is inserted
+                    $('#loader').addClass('hidden'); 
+                    $('#result').html(response.html); 
+                    adjustFontSize(); 
                 },
-                error: function(jqXHR, textStatus, errorThrown) { // Enhanced error handling
-                    $('#loader').addClass('hidden'); // Hide loader
+                error: function(jqXHR, textStatus, errorThrown) { 
+                    $('#loader').addClass('hidden');
                     let errorMsg = 'Wystąpił błąd serwera.';
                     if (jqXHR.responseJSON && jqXHR.responseJSON.html) {
-                        errorMsg = jqXHR.responseJSON.html; // Display server-provided HTML error
+                        errorMsg = jqXHR.responseJSON.html; 
                     } else if (jqXHR.responseText) {
-                        // Try to show responseText if it's not JSON (e.g. non-JSON error from server)
-                        // Be cautious with displaying raw responseText directly if it might contain unsafe HTML
-                        // For simplicity here, we assume it's a plain text or safe HTML error message
-                        // A better approach might be to parse it or show a generic message
                         errorMsg = `<p>Błąd: ${jqXHR.status} ${errorThrown}</p><pre>${jqXHR.responseText.substring(0, 500)}</pre>`;
                     }
                     $('#result').html(`<div style="color: red;">${errorMsg}</div>`);
@@ -76,11 +71,10 @@
             });
         });
 
-        // Also re-adjust if the window resizes
         let resizeTimeout;
         $(window).on('resize', function() {
             clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(adjustFontSize, 250); // Debounce resize event
+            resizeTimeout = setTimeout(adjustFontSize, 250);
         });
     });
     </script>
