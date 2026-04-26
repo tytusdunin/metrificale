@@ -185,7 +185,7 @@ zmiany = {
     ' w ': ' w~', 'W ': 'W~', '…': '', '«': '', '»': '',
     ' z ': ' z~', 'Z ': 'Z~', ' k ': ' k~', '—': '', '–': '', 'ň': 'n',
     'CZ': 'Cz', 'SZ': 'Sz', 'DZ': 'Dz', 'RZ': 'Rz', 'CH': 'Ch',
-    'DŻ': 'Dż', 'DŹ': 'Dź', 'DZI': 'Dzi',
+    'DŻ': 'Dż', 'DŹ': 'Dź', 'DZI': 'Dzi', '„': '', '“': ''
 }
 
 prepyphen_path = 'ustab-zestr.txt'
